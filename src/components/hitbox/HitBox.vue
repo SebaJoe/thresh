@@ -5,6 +5,9 @@
   import VueMarkdown from 'vue-markdown-render'
   import { initializeApp } from 'firebase/app'
   import { getFirestore, doc, updateDoc, arrayUnion } from "firebase/firestore";
+  import {googleTokenLogin} from "vue3-google-login"
+  import {googleSdkLoaded} from "vue3-google-login"
+  import axios from 'axios'
 </script>
 
 <script>
@@ -35,7 +38,10 @@ export default {
         'toggle_instructions'
     ],
     data() {
-        return {}
+        return {
+            access_token: null,
+            current_num: 0,
+        }
     },
     watch: {
         current_hit() {
@@ -234,6 +240,85 @@ export default {
             } else {
                 alert("You have successfully submitted your annotations.")
             }
+        },
+        g_login() {
+            /*googleTokenLogin().then((response) => {
+                this.access_token = response.access_token;
+                console.log(response);
+            })*/
+            if (this.config.gdrive_save && this.config.gdrive_save.folder_id) {
+                googleSdkLoaded((google) => {
+                    google.accounts.oauth2.initTokenClient({
+                        client_id: '38151104927-cbl7m0b4ko9hmm7urcnnl7f77do05pm5.apps.googleusercontent.com',
+                        scope: 'https://www.googleapis.com/auth/drive.file',
+                        callback: (response) => {
+                            console.log("Handle the response", response);
+                            this.access_token = response.access_token;
+                            axios.get("https://www.googleapis.com/drive/v3/files", {
+                                params: {
+                                    trashed: false,
+                                    q: `'${this.config.gdrive_save.folder_id}' in parents`,
+                                },
+                                headers: { Authorization: `Bearer ${this.access_token}` },
+                            }).then((response) => {
+                                console.log(response);
+                                const file_data = response.data.files;
+                                if (file_data.length <= 0) {
+                                    return;
+                                }
+                                if(file_data.every((a) => {a.name.indexOf('_h') != -1})) {
+                                    alert("Folder formatted incorrectly. Please contact folder owner.");
+                                    return;
+                                }
+                                console.log("passed folder test");
+                                file_data.sort((a, b) => {
+                                    return parseInt(b.name.split("_h")[1]) - parseInt(a.name.split("_h")[1]);
+                                });
+                                console.log("sorted");
+                                if (file_data.length > 0) {
+                                    this.current_num = parseInt(file_data[0].name.split("_h")[1]);
+                                    this.current_num++;
+                                    axios.get("https://www.googleapis.com/drive/v3/files/" + file_data[0].id + "?alt=media", {
+                                        headers: { Authorization: `Bearer ${this.access_token}` },
+                                    }).then((response) => {
+                                        console.log(response.data);
+                                        this.set_hits_data(response.data);
+                                        this.set_hit(1);
+                                        this.setup_hit_box();
+                                    }).catch((error) => {
+                                        alert("Error: Cannot access data. Please refresh and try again.");
+                                    });
+                                }
+                            }).catch((error) => {
+                                console.log(error);
+                            });
+                        }
+                    }).requestAccessToken()
+                });
+            }
+        },
+        gfile_create() {
+            if (this.config.gdrive_save && this.config.gdrive_save.folder_id) {
+                console.log(this.access_token);
+                console.log(JSON.stringify(this.hits_data, null, 2));
+                const f_prefix = this.config.gdrive_save.file_prefix || "annotation";
+                const file_name = `${f_prefix}_h${this.current_num}_h.json`;
+                this.current_num++;
+                const formData = new FormData();
+                formData.append("metadata", new Blob([JSON.stringify({ name:file_name, parents: [this.config.gdrive_save.folder_id]})], {type: "application/json"}));
+                formData.append("file", new Blob([JSON.stringify(this.hits_data, null, 2)], {type: "application/json"}));
+                axios
+                    .post("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", formData, {
+                        headers: { Authorization: `Bearer ${this.access_token}` },
+                    })
+                    .then((response) => {
+                        console.log(response.data);
+                        alert("Submitted");
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                    });
+            }
         }
     }
 }
@@ -245,8 +330,10 @@ export default {
             <div class="tc f3 mt1 hit-selector">
                 <button @click="go_to_hit(current_hit - 1)" class="mid-gray br-100 pa1 bw0 bg-near-white pointer prev-next-btns">&nbsp;&lt;&nbsp;</button>
                 {{ config.interface_text.hit_box.hit_label }} <span>{{ current_hit }}</span> / <span>{{ total_hits }}&nbsp;</span>
-                <button v-if="!(config.crowdsource)" @click="go_to_hit(current_hit + 1)" class="mid-gray br-100 pa1 bw0 bg-near-white pointer prev-next-btns">&nbsp;&gt;&nbsp;</button>
-                <button v-else @click="submit_crowsource()" class="ml2 pa1 ph3 br-pill-ns ba bw1 grow pointer crowdsource-submit">Submit</button>
+                <button @click="go_to_hit(current_hit + 1)" class="mid-gray br-100 pa1 bw0 bg-near-white pointer prev-next-btns">&nbsp;&gt;&nbsp;</button>
+                <button v-if="(config.crowdsource)" @click="submit_crowsource()" class="ml2 pa1 ph3 br-pill-ns ba bw1 grow pointer crowdsource-submit">Submit</button>
+                <button v-if="(config.gdrive_save)" @click="gfile_create()" class="ml2 pa1 ph3 br-pill-ns ba bw1 grow pointer crowdsource-submit">Submit</button>
+                <button v-if="(config.gdrive_save)" @click="g_login()" class="ml2 pa1 ph3 br-pill-ns ba bw1 grow pointer crowdsource-submit">Login</button>
             </div>
 
             <div class="hit-instructions">

@@ -2,6 +2,7 @@ import { createApp, h } from "vue/dist/vue.esm-bundler.js"
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import { joinPaths  } from "./assets/js/file-util";
+import vue3GoogleLogin from 'vue3-google-login'
 
 // Add global imports
 import './assets/js/font-awesome.min.js';
@@ -68,6 +69,10 @@ const app = createApp({
         h(App)
     ),
 })
+
 app.config.globalProperties.$templates = [...templates, ...demo_templates]
 app.use(router)
+app.use(vue3GoogleLogin, {
+    clientId: '38151104927-cbl7m0b4ko9hmm7urcnnl7f77do05pm5.apps.googleusercontent.com'
+})
 app.mount('#app')
