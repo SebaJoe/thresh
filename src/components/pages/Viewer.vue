@@ -3,6 +3,7 @@
     import Landing from "./Landing.vue";
 
     import { download_data, download_config, get_file_path } from "../../assets/js/file-util.js";
+    import { getFirestore, doc, getDoc } from "firebase/firestore";
     import jsyaml from 'js-yaml';
 </script>
 
