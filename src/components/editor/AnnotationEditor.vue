@@ -4,6 +4,30 @@
 </script>
 
 <script>
+export function removeNullElements(obj) {
+    if (typeof obj !== 'object' || obj === null) {
+        return obj;
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map((item) => removeNullElements(item)).filter((item) => item !== null);
+    }
+
+    const newObj = {};
+    let hasNonNullChild = false;
+
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            const value = removeNullElements(obj[key]);
+            if (value !== null) {
+                newObj[key] = value;
+                hasNonNullChild = true;
+            }
+        }
+    }
+    return hasNonNullChild ? newObj : null;
+}
+
 export default {
     props: [
         'edits_dict',
@@ -68,7 +92,7 @@ export default {
             for (const option_idx in edit_config) {
                 edit_options['val'] = null
                 edit_options[edit_config[option_idx].name] = this.parse_options(edit_config[option_idx].options)
-            } 
+            }
             return edit_options
         },
         initalize_edit_state() {
@@ -95,7 +119,7 @@ export default {
 
             $(".icon-default").removeClass("open")
             this.set_editor_state(!this.editor_open)
-            
+
             let selected_category = $("input[name=edit_cotegory]:checked").val();
             const edits_data = new_hits_data[this.current_hit - 1].edits
 
@@ -154,8 +178,11 @@ export default {
                 }
             }
 
+            let new_annotation = _.cloneDeep(this.edit_state[selected_category])
+            new_span.annotation = removeNullElements(new_annotation)
+
             new_hits_data[this.current_hit - 1].edits.push(new_span)
-            
+
             this.set_hits_data(new_hits_data)
             this.refresh_edit();
         },
@@ -168,32 +195,8 @@ export default {
             this.refresh_edit();
         },
         save_annotation_click(category, e) {
-            function removeNullElements(obj) {
-                if (typeof obj !== 'object' || obj === null) {
-                    return obj;
-                }
-
-                if (Array.isArray(obj)) {
-                    return obj.map((item) => removeNullElements(item)).filter((item) => item !== null);
-                }
-
-                const newObj = {};
-                let hasNonNullChild = false;
-
-                for (const key in obj) {
-                    if (obj.hasOwnProperty(key)) {
-                        const value = removeNullElements(obj[key]);
-                        if (value !== null) {
-                            newObj[key] = value;
-                            hasNonNullChild = true;
-                        }
-                    }
-                }
-                return hasNonNullChild ? newObj : null;
-            }
-
             let edit_id = this.annotating_edit_span_category_id
-            
+
             let new_hits_data = _.cloneDeep(this.hits_data);
             let new_annotation = _.cloneDeep(this.edit_state[category])
 
@@ -273,13 +276,13 @@ export default {
                 enable_multi_select_source_sentence: false,
                 enable_multi_select_target_sentence: false,
             }
-                        
+
             if (edit_config['enable_input']) {
                 new_hit_box_config.enable_select_source_sentence = true;
                 if (edit_config['type'] == 'multi_span') {
                     new_hit_box_config.enable_multi_select_source_sentence = true;
                 }
-            } 
+            }
             if (edit_config['enable_output']) {
                 new_hit_box_config.enable_select_target_sentence = true;
                 if (edit_config['type'] == 'multi_span') {
@@ -314,12 +317,12 @@ export default {
                 // are answered. I could implement this recursively by checking the "annotated" attribute
                 // but this creates circular updating so we need a better solution.
                 if (
-                    annotation != null && 
+                    annotation != null &&
                     (
                         (annotation.val != null && annotation.val != '') ||
                         (annotation.val == null && annotation != '' )
-                    )) { 
-                        continue 
+                    )) {
+                        continue
                 }
 
                 if ($(q_object[0]).attr('annotated') != 'true' && (!question.hasOwnProperty('required') || question.required)) {
@@ -407,12 +410,17 @@ export default {
                                     <p class="tracked-light lh-paras-2">{{ config.interface_text.annotation_editor.selected_label }} {{ config.interface_text.typology.edits_unit_name }}: <span v-html="selected_edits_html"></span></p>
                                 </div>
                             </div>
+
+                            <div v-for="question in item.annotation" :key="question.id">
+                                <Question :edit_state="edit_state" :empty_question_state="empty_edit_state[item.name][question.name]" :question_state="edit_state[item.name][question.name]" :question="question" :edit_type="item" :set_edit_state="set_edit_state"
+                                    :config="config" :parent_show_next_question="null" isRoot=true :ref="`${item.name}_${question.name}`" :force_update="force_update_f" />
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="buttons tc mt2">
                     <button @click="cancel_click" class="cancel-button b quality_button bw0 ba mr2 br-pill-ns grow" type="button">{{ config.interface_text.buttons.cancel_label }} <i class="fa-solid fa-close"></i></button>
-                    <button @click="save_click" :class="{'o-40': add_edit_disabled, 'grow': !add_edit_disabled}" :disabled="add_edit_disabled" 
+                    <button @click="save_click" :class="{'o-40': add_edit_disabled, 'grow': !add_edit_disabled}" :disabled="add_edit_disabled"
                         class="confirm-button b quality_button bw0 ba ml2 br-pill-ns" type="button">{{ config.interface_text.buttons.save_label }} <i class="fa-solid fa-check"></i></button>
                 </div>
             </div>
@@ -430,7 +438,7 @@ export default {
                             <span v-if="item.enable_input" v-html="annotating_edit_span.source"></span>
                             <span v-if="item.enable_input && item.enable_output" :class="`edit-type txt-${item.name} f3`">&nbsp;{{ config.interface_text.annotation_editor.composite_span_unification }}&nbsp;</span>
                             <span v-if="item.enable_output" v-html="annotating_edit_span.target"></span>
-                            
+
                             <span v-if="item.type == 'composite'" v-html="annotating_edit_span.composite"></span>
                         </div>
 

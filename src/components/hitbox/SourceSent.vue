@@ -91,6 +91,20 @@ export default {
                 return;
             }
 
+            const existingEdits = this.hits_data[this.current_hit - 1].edits;
+            for (let edit of existingEdits) {
+                if (!edit.hasOwnProperty('input_idx')) {
+                    continue;
+                }
+                for (let span of edit.input_idx) {
+                    let [existingStart, existingEnd] = span;
+                    if (start < existingEnd && existingStart < end) {
+                        this.process_source_html(null); // rerender if blocking 
+                        return;
+                    }
+                }
+            }
+
             $('#source-sentence').addClass(`select-color-${selected_category}`)
 
             let split_chars = [' ', '\n']
@@ -157,7 +171,7 @@ export default {
     computed: {
         get_source_html() {
             return {
-                template: `<pre @mousedown='deselect_source_html' @mouseup='select_source_html' id="source-sentence" class="f4 lh-paras sans-serif selection-area">${this.source_html}</pre>`,
+                template: `<pre @mousedown='deselect_source_html' @mouseup='select_source_html' id="source-sentence" class="f4 lh-paras sans-serif" style="white-space: pre-line;">${this.source_html}</pre>`,
                 methods: {
                     select_source_html: this.select_source_html,
                     deselect_source_html: this.deselect_source_html,

@@ -96,6 +96,20 @@ export default {
                 return;
             }
 
+            const existingEdits = this.hits_data[this.current_hit - 1].edits;
+            for (let edit of existingEdits) {
+                if (!edit.hasOwnProperty('output_idx')) {
+                    continue;
+                }
+                for (let span of edit.output_idx) {
+                    let [existingStart, existingEnd] = span;
+                    if (start < existingEnd && existingStart < end) {
+                        this.process_target_html(null); // rerender if blocking due to overlap
+                        return;
+                    }
+                }
+            }
+
             $('#target-sentence').addClass(`select-color-${selected_category}`)
 
             let split_chars = [' ', '\n']
@@ -161,7 +175,7 @@ export default {
     computed: {
         get_target_html() {
             return {
-                template: `<pre @mousedown='deselect_target_html' @mouseup='select_target_html' id="target-sentence" class="f4 lh-paras sans-serif selection-area"> ${ this.target_html } </pre> `,
+                template: ` <pre @mousedown='deselect_target_html' @mouseup='select_target_html' id="target-sentence" class="f4 lh-paras sans-serif" style="white-space: pre-line;"> ${ this.target_html } </pre> `,
                 methods: {
                         select_target_html: this.select_target_html,
                         deselect_target_html: this.deselect_target_html,
