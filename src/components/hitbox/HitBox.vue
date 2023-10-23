@@ -280,6 +280,7 @@ export default {
                             console.log("Handle the response", response);
                             this.access_token = response.access_token;
                             console.log(this.config.gdrive_save.folder_id);
+                            this.$timer.start('repeat_time');
                             axios.get("https://www.googleapis.com/drive/v3/files", {
                                 params: {
                                     trashed: false,
@@ -311,7 +312,6 @@ export default {
                                         this.set_hits_data(response.data);
                                         this.set_hit(1);
                                         this.setup_hit_box();
-                                        this.$timer.start('repeat_time');
                                     }).catch((error) => {
                                         alert("Error: Cannot access data. Please refresh and try again.");
                                     });
