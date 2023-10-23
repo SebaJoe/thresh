@@ -411,10 +411,10 @@ export default {
                                 </div>
                             </div>
 
-                            <div v-for="question in item.annotation" :key="question.id">
+                            <!----<div v-for="question in item.annotation" :key="question.id">
                                 <Question :edit_state="edit_state" :empty_question_state="empty_edit_state[item.name][question.name]" :question_state="edit_state[item.name][question.name]" :question="question" :edit_type="item" :set_edit_state="set_edit_state"
                                     :config="config" :parent_show_next_question="null" isRoot=true :ref="`${item.name}_${question.name}`" :force_update="force_update_f" />
-                            </div>
+                            </div>-->
                         </div>
                     </div>
                 </div>

@@ -25,6 +25,7 @@
     "vue-googleapis": "^1.0.10",
     "vue-markdown-render": "^2.0.1",
     "vue-router": "^4.2.2",
+    "vue-timers": "^2.0.4",
     "vue3-google-login": "^2.0.23",
     "vue3-runtime-template": "^1.0.2",
     "vuefire": "^3.1.17"

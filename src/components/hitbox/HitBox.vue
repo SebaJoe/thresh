@@ -8,10 +8,15 @@
   import {googleTokenLogin} from "vue3-google-login"
   import {googleSdkLoaded} from "vue3-google-login"
   import axios from 'axios'
+  import {mixin as VueTimers} from 'vue-timers'
 </script>
 
 <script>
 export default {
+    mixins: [VueTimers],
+    timers: {
+        repeat_time: {time: 1000, repeat: true}
+    },
     components: {
         VueMarkdown
     },
@@ -41,6 +46,8 @@ export default {
         return {
             access_token: null,
             current_num: 0,
+            timer_num: 3000,
+            login_timer: "Login",
         }
     },
     watch: {
@@ -52,6 +59,16 @@ export default {
         },
     },
     methods: {
+        repeat_time() {
+            if (this.timer_num > 0) {
+                this.timer_num--;
+                this.login_timer = `${Math.floor(this.timer_num/60)}:${(this.timer_num%60 >= 10) ? this.timer_num%60: "0" + (this.timer_num%60)}`;
+            } else {
+                this.login_timer = "Login";
+                alert('Login Expired: save current annotations and login again.');
+                this.$timer.stop('repeat_time');
+            }
+        },
         setup_hit_box() {
             $(`#comment_area`).val('');
             if ("comment" in this.hits_data[this.current_hit - 1]) {
@@ -262,6 +279,7 @@ export default {
                         callback: (response) => {
                             console.log("Handle the response", response);
                             this.access_token = response.access_token;
+                            console.log(this.config.gdrive_save.folder_id);
                             axios.get("https://www.googleapis.com/drive/v3/files", {
                                 params: {
                                     trashed: false,
@@ -293,11 +311,13 @@ export default {
                                         this.set_hits_data(response.data);
                                         this.set_hit(1);
                                         this.setup_hit_box();
+                                        this.$timer.start('repeat_time');
                                     }).catch((error) => {
                                         alert("Error: Cannot access data. Please refresh and try again.");
                                     });
                                 }
                             }).catch((error) => {
+                                console.log("ERROR");
                                 console.log(error);
                             });
                         }
@@ -325,6 +345,7 @@ export default {
                     })
                     .catch((error) => {
                         console.log(error);
+                        alert("Your data has not been submitted due to an error. Do not attempt to login again or refresh the page unless you have a saved copy of your current annotations.");
                     });
             }
         }
@@ -341,7 +362,7 @@ export default {
                 <button @click="go_to_hit(current_hit + 1)" class="mid-gray br-100 pa1 bw0 bg-near-white pointer prev-next-btns">&nbsp;&gt;&nbsp;</button>
                 <button v-if="(config.crowdsource)" @click="submit_crowsource()" class="ml2 pa1 ph3 br-pill-ns ba bw1 grow pointer crowdsource-submit">Submit</button>
                 <button v-if="(config.gdrive_save)" @click="gfile_create()" class="ml2 pa1 ph3 br-pill-ns ba bw1 grow pointer crowdsource-submit">Submit</button>
-                <button v-if="(config.gdrive_save)" @click="g_login()" class="ml2 pa1 ph3 br-pill-ns ba bw1 grow pointer crowdsource-submit">Login</button>
+                <button v-if="(config.gdrive_save)" @click="g_login()" class="ml2 pa1 ph3 br-pill-ns ba bw1 grow pointer crowdsource-submit">{{ login_timer }}</button>
             </div>
 
             <div class="hit-instructions">
