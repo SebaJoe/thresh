@@ -65,6 +65,7 @@ export default {
                 this.login_timer = `${Math.floor(this.timer_num/60)}:${(this.timer_num%60 >= 10) ? this.timer_num%60: "0" + (this.timer_num%60)}`;
             } else {
                 this.login_timer = "Login";
+                this.timer_num = 3000;
                 alert('Login Expired: save current annotations and login again.');
                 this.$timer.stop('repeat_time');
             }
